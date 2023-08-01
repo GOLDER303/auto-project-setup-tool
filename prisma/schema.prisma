@@ -18,7 +18,7 @@ model FileToCopy {
   id                   Int     @id @default(autoincrement())
   fileName             String  @unique
   filePath             String
-  destinationDirectory String
+  destinationDirectory String?
   isTemplate           Boolean
 
   projectType ProjectType[]
