@@ -1,26 +1,55 @@
 import { PrismaClient } from "@prisma/client"
 import { exec } from "child_process"
 import { copyFile, existsSync, mkdirSync } from "fs"
+import inquirer from "inquirer"
+import path from "path"
+import { fileURLToPath } from "url"
 
-const PROJECT_PATH = process.argv[2]
-const PROJECT_TYPE = process.argv[3]
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const CWD = process.cwd()
 
 const prisma = new PrismaClient()
 
 const main = async () => {
-    const projectType = await prisma.projectType.findUniqueOrThrow({ where: { name: PROJECT_TYPE }, include: { commandsToRun: true, filesToCopy: true } })
+    const availableProjectTypes = await prisma.projectType.findMany()
 
-    const properProjectPath = PROJECT_PATH.endsWith("\\") || PROJECT_PATH.endsWith("/") ? PROJECT_PATH : PROJECT_PATH + "/"
+    const setupAnswers: { projectName: string; projectType: string } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "projectName",
+            message: "Project name:",
+        },
+        {
+            type: "list",
+            name: "projectType",
+            message: "Choose project type:",
+            choices: availableProjectTypes,
+        },
+    ])
+
+    const PROJECT_TYPE = setupAnswers.projectType
+
+    const PROJECT_PATH = CWD + setupAnswers.projectName == "." ? "" : setupAnswers.projectName
+    if (!existsSync(PROJECT_PATH)) {
+        mkdirSync(PROJECT_PATH)
+    }
+
+    const projectType = await prisma.projectType.findUniqueOrThrow({ where: { name: PROJECT_TYPE }, include: { commandsToRun: true, filesToCopy: true } })
 
     const copyFilePromises = projectType.filesToCopy.map((fileToCopy) => {
         return new Promise((resolve, reject) => {
-            const destinationPath = properProjectPath + (fileToCopy.destinationDirectory ? fileToCopy.destinationDirectory + "/" : "")
+            let destinationPath = PROJECT_PATH
+
+            if (fileToCopy.destinationDirectory) {
+                destinationPath = path.join(PROJECT_PATH, fileToCopy.destinationDirectory)
+            }
 
             if (!existsSync(destinationPath)) {
                 mkdirSync(destinationPath)
             }
 
-            copyFile(fileToCopy.filePath, destinationPath + fileToCopy.fileName, (error) => {
+            copyFile(path.join(__dirname, fileToCopy.filePath), path.join(destinationPath, fileToCopy.fileName), (error) => {
                 if (error) reject(error)
                 else resolve(null)
             })
