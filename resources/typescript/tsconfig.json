@@ -17,6 +17,5 @@
         /* Type Checking */
         "strict": true,
         "skipLibCheck": true
-    },
-    "exclude": ["resources/*"]
+    }
 }
