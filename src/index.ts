@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client"
 import { exec } from "child_process"
-import { copyFile } from "fs"
+import { copyFile, existsSync, mkdirSync } from "fs"
 
 const PROJECT_PATH = process.argv[2]
 const PROJECT_TYPE = process.argv[3]
@@ -10,9 +10,17 @@ const prisma = new PrismaClient()
 const main = async () => {
     const projectType = await prisma.projectType.findUniqueOrThrow({ where: { name: PROJECT_TYPE }, include: { commandsToRun: true, filesToCopy: true } })
 
+    const properProjectPath = PROJECT_PATH.endsWith("\\") || PROJECT_PATH.endsWith("/") ? PROJECT_PATH : PROJECT_PATH + "/"
+
     const copyFilePromises = projectType.filesToCopy.map((fileToCopy) => {
         return new Promise((resolve, reject) => {
-            copyFile(fileToCopy.filePath, PROJECT_PATH + fileToCopy.fileName, (error) => {
+            const destinationPath = properProjectPath + (fileToCopy.destinationDirectory ? fileToCopy.destinationDirectory + "/" : "")
+
+            if (!existsSync(destinationPath)) {
+                mkdirSync(destinationPath)
+            }
+
+            copyFile(fileToCopy.filePath, destinationPath + fileToCopy.fileName, (error) => {
                 if (error) reject(error)
                 else resolve(null)
             })
