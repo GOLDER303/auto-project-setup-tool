@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { CommandToRun, FileToCopy, PrismaClient } from "@prisma/client"
 import { exec } from "child_process"
 import { copyFile, existsSync, mkdirSync } from "fs"
 import inquirer from "inquirer"
@@ -11,38 +11,11 @@ const CWD = process.cwd()
 
 const prisma = new PrismaClient()
 
-const main = async () => {
-    const availableProjectTypes = await prisma.projectType.findMany()
-
-    const setupAnswers: { projectName: string; projectType: string } = await inquirer.prompt([
-        {
-            type: "input",
-            name: "projectName",
-            message: "Project name:",
-        },
-        {
-            type: "list",
-            name: "projectType",
-            message: "Choose project type:",
-            choices: availableProjectTypes,
-        },
-    ])
-
-    const PROJECT_TYPE = setupAnswers.projectType
-
-    const PROJECT_PATH = CWD + setupAnswers.projectName == "." ? "" : setupAnswers.projectName
-    if (!existsSync(PROJECT_PATH)) {
-        mkdirSync(PROJECT_PATH)
-    }
-
-    const projectType = await prisma.projectType.findUniqueOrThrow({ where: { name: PROJECT_TYPE }, include: { commandsToRun: true, filesToCopy: true } })
-
-    const copyFilePromises = projectType.filesToCopy.map((fileToCopy) => {
+const copyFiles = async (filesToCopy: FileToCopy[], destinationPath: string) => {
+    const copyFilePromises = filesToCopy.map((fileToCopy) => {
         return new Promise((resolve, reject) => {
-            let destinationPath = PROJECT_PATH
-
             if (fileToCopy.destinationDirectory) {
-                destinationPath = path.join(PROJECT_PATH, fileToCopy.destinationDirectory)
+                destinationPath = path.join(destinationPath, fileToCopy.destinationDirectory)
             }
 
             if (!existsSync(destinationPath)) {
@@ -56,24 +29,58 @@ const main = async () => {
         })
     })
 
+    return Promise.all(copyFilePromises)
+}
+
+const runCommands = (commandsToRun: CommandToRun[], workingDirectory: string) => {
+    commandsToRun.forEach((commandToRun) => {
+        exec(commandToRun.command, { cwd: workingDirectory }, (error, _, stderr) => {
+            if (error) {
+                throw error
+            } else if (stderr) {
+                throw stderr
+            }
+        })
+    })
+}
+
+const getProjectDetailsFromUser = async () => {
+    const availableProjectTypes = await prisma.projectType.findMany()
+
+    const projectDetails: { projectName: string; projectType: string } = await inquirer.prompt([
+        {
+            type: "input",
+            name: "projectName",
+            message: "Project name:",
+        },
+        {
+            type: "list",
+            name: "projectType",
+            message: "Choose project type:",
+            choices: availableProjectTypes,
+        },
+    ])
+
+    return projectDetails
+}
+
+const main = async () => {
+    const projectDetails = await getProjectDetailsFromUser()
+
+    const PROJECT_PATH = CWD + projectDetails.projectName == "." ? "" : projectDetails.projectName
+    if (!existsSync(PROJECT_PATH)) {
+        mkdirSync(PROJECT_PATH)
+    }
+
+    const projectType = await prisma.projectType.findUniqueOrThrow({ where: { name: projectDetails.projectType }, include: { commandsToRun: true, filesToCopy: true } })
+
     try {
-        await Promise.all(copyFilePromises)
+        await copyFiles(projectType.filesToCopy, PROJECT_PATH)
+        runCommands(projectType.commandsToRun, PROJECT_PATH)
     } catch (error) {
         console.error(error)
         process.exit(1)
     }
-
-    projectType.commandsToRun.forEach((commandToRun) => {
-        exec(commandToRun.command, { cwd: PROJECT_PATH }, (error, _, stderr) => {
-            if (error) {
-                console.error(error)
-                process.exit(1)
-            } else if (stderr) {
-                console.error(error)
-                process.exit(1)
-            }
-        })
-    })
 }
 
 main()
