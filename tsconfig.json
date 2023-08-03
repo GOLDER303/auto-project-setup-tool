@@ -19,5 +19,5 @@
         "strict": true,
         "skipLibCheck": true
     },
-    "exclude": ["resources/*"]
+    "exclude": ["templates/*"]
 }
