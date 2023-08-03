@@ -59,6 +59,11 @@ const getProjectDetailsFromUser = async () => {
     return projectDetails
 }
 
+const setupGitRepository = (repositoryPath: string) => {
+    const commandsToRun = ["git init", "git add .", 'git commit -m "Initial commit"']
+    runCommands(commandsToRun, repositoryPath)
+}
+
 const main = async () => {
     const projectDetails = await getProjectDetailsFromUser()
 
@@ -73,6 +78,8 @@ const main = async () => {
 
         const commandsToRun = getCommandsToRun(path.join(TEMPLATE_PATH, COMMANDS_TO_RUN_FILE_NAME))
         runCommands(commandsToRun, PROJECT_PATH)
+
+        setupGitRepository(PROJECT_PATH)
     } catch (error) {
         console.error(error)
         process.exit(1)
