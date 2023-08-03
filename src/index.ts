@@ -1,4 +1,4 @@
-import { exec } from "child_process"
+import { execSync } from "child_process"
 import { cp, existsSync, mkdirSync, readFileSync, readdirSync } from "fs"
 import inquirer from "inquirer"
 import path from "path"
@@ -25,13 +25,7 @@ const runCommands = (commandsToRun: string[], workingDirectory: string) => {
             return
         }
 
-        exec(commandToRun, { cwd: workingDirectory }, (error, _, stderr) => {
-            if (error) {
-                throw error
-            } else if (stderr) {
-                throw stderr
-            }
-        })
+        execSync(commandToRun, { cwd: workingDirectory, stdio: "ignore" })
     })
 }
 
