@@ -30,6 +30,10 @@ const runCommands = (commandsToRun: string[], workingDirectory: string) => {
 }
 
 const getCommandsToRun = (sourceFile: string): string[] => {
+    if (!existsSync(sourceFile)) {
+        return []
+    }
+
     const commandsFileData = readFileSync(sourceFile, "utf-8")
 
     if (commandsFileData.includes("\r")) {
