@@ -72,7 +72,8 @@ const main = async () => {
     const projectDetails = await getProjectDetailsFromUser()
 
     const TEMPLATE_PATH = path.join(TEMPLATES_DIR_PATH, projectDetails.projectType)
-    const PROJECT_PATH = CWD + projectDetails.projectName == "." ? "" : projectDetails.projectName
+    const PROJECT_PATH = path.join(CWD, projectDetails.projectName)
+
     if (!existsSync(PROJECT_PATH)) {
         mkdirSync(PROJECT_PATH)
     }
