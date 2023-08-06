@@ -51,6 +51,7 @@ const getProjectDetailsFromUser = async () => {
             type: "input",
             name: "projectName",
             message: "Project name:",
+            filter: (input: string) => input.trim().replaceAll(" ", "-"),
         },
         {
             type: "list",
