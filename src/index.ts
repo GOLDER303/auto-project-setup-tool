@@ -46,7 +46,7 @@ const getCommandsToRun = (sourceFile: string): string[] => {
 const getProjectDetailsFromUser = async () => {
     const availableProjectTypes = readdirSync(TEMPLATES_DIR_PATH)
 
-    const projectDetails: { projectName: string; projectType: string } = await inquirer.prompt([
+    const projectDetails: { projectName: string; projectType: string; setupGit: boolean } = await inquirer.prompt([
         {
             type: "input",
             name: "projectName",
@@ -57,6 +57,12 @@ const getProjectDetailsFromUser = async () => {
             name: "projectType",
             message: "Choose project type:",
             choices: availableProjectTypes,
+        },
+        {
+            type: "confirm",
+            default: true,
+            name: "setupGit",
+            message: "Do you want to add Git?",
         },
     ])
 
@@ -84,7 +90,9 @@ const main = async () => {
         const commandsToRun = getCommandsToRun(path.join(TEMPLATE_PATH, COMMANDS_TO_RUN_FILE_NAME))
         runCommands(commandsToRun, PROJECT_PATH)
 
-        setupGitRepository(PROJECT_PATH)
+        if (projectDetails.setupGit) {
+            setupGitRepository(PROJECT_PATH)
+        }
     } catch (error) {
         console.error(error)
         process.exit(1)
