@@ -6,7 +6,6 @@
         /* Modules */
         "module": "NodeNext",
         "rootDir": "./src",
-        "moduleResolution": "NodeNext",
 
         /* Emit */
         "outDir": "./build",
